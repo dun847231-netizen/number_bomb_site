@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Number Bomb Game — Interactive Research Showcase</title>
+  <style>
+    :root{
+      --bg:#07111f;
+      --bg2:#0b1729;
+      --card:rgba(12,23,41,.72);
+      --card2:rgba(17,29,48,.86);
+      --line:rgba(255,255,255,.1);
+      --text:#eef4ff;
+      --muted:#adc0de;
+      --blue:#60a5fa;
+      --cyan:#22d3ee;
+      --violet:#a78bfa;
+      --green:#34d399;
+      --gold:#fbbf24;
+      --red:#fb7185;
+      --shadow:0 18px 50px rgba(0,0,0,.35);
+      --radius:22px;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 500px at 10% -10%, rgba(96,165,250,.18), transparent 60%),
+        radial-gradient(800px 500px at 100% 0%, rgba(167,139,250,.16), transparent 50%),
+        linear-gradient(180deg, var(--bg), #050b14 50%, #08101c 100%);
+      overflow-x:hidden;
+    }
+    .noise::before{
+      content:"";
+      position:fixed; inset:0;
+      background-image:radial-gradient(rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size:18px 18px;
+      opacity:.15; pointer-events:none;
+    }
+    .container{width:min(1180px, calc(100vw - 32px)); margin:0 auto; position:relative; z-index:1;}
+    .hero{padding:72px 0 36px;}
+    .pill{
+      display:inline-flex; gap:8px; align-items:center;
+      background:rgba(96,165,250,.12); border:1px solid rgba(96,165,250,.28);
+      color:#d7e7ff; border-radius:999px; padding:10px 14px; font-size:13px; letter-spacing:.2px;
+      backdrop-filter: blur(10px);
+    }
+    h1{
+      font-size: clamp(36px, 6vw, 68px);
+      line-height: .98;
+      margin:18px 0 14px;
+      letter-spacing:-.04em;
+      max-width: 980px;
+    }
+    .gradient{background:linear-gradient(90deg,#f8fbff 0%, #91c0ff 40%, #8cf0ff 100%); -webkit-background-clip:text; background-clip:text; color:transparent}
+    .subtitle{max-width:820px; color:var(--muted); font-size:18px; line-height:1.75; margin:0 0 26px}
+    .hero-grid{
+      display:grid; grid-template-columns: 1.4fr .9fr; gap:22px; align-items:stretch;
+    }
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+    .hero-panel{padding:26px 26px 20px;}
+    .stat-grid{display:grid; grid-template-columns: repeat(4,1fr); gap:14px; margin-top:22px}
+    .stat{padding:18px; border-radius:18px; background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08)}
+    .stat .label{font-size:12px; color:#a9bdd9; text-transform:uppercase; letter-spacing:.12em}
+    .stat .value{font-size:28px; font-weight:700; margin-top:10px}
+    .insight{padding:24px 24px 18px; display:flex; flex-direction:column; justify-content:space-between}
+    .insight h3{margin:0 0 10px; font-size:22px}
+    .insight p{margin:0; color:var(--muted); line-height:1.7}
+    .legend{display:flex; gap:14px; flex-wrap:wrap; margin-top:18px; color:#c7dbf7; font-size:13px}
+    .legend span{display:inline-flex; gap:8px; align-items:center}
+    .dot{width:10px; height:10px; border-radius:50%}
+    .dot.random{background:var(--cyan)}
+    .dot.binary{background:var(--gold)}
+    section{padding:28px 0}
+    .section-head{display:flex; justify-content:space-between; gap:18px; align-items:end; margin-bottom:16px}
+    .section-head h2{margin:0; font-size:32px; letter-spacing:-.03em}
+    .section-head p{margin:0; max-width:650px; color:var(--muted); line-height:1.7}
+
+    .chart-card{padding:22px; overflow:hidden}
+    .toolbar{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px}
+    .btn{
+      appearance:none; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:#d9e7fb;
+      padding:10px 14px; border-radius:999px; font-weight:600; cursor:pointer; transition:.2s ease;
+    }
+    .btn.active{background:linear-gradient(90deg, rgba(96,165,250,.2), rgba(34,211,238,.16)); border-color:rgba(96,165,250,.4)}
+    .chart-wrap{position:relative; height:440px; border-radius:20px; background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015)); border:1px solid rgba(255,255,255,.06); overflow:hidden}
+    svg{display:block; width:100%; height:100%}
+    .callouts{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:14px}
+    .callout{padding:18px; border-radius:18px; background:var(--card2); border:1px solid rgba(255,255,255,.08)}
+    .callout h4{margin:0 0 8px; font-size:15px; color:#dce9fb}
+    .callout p{margin:0; color:var(--muted); line-height:1.65; font-size:14px}
+
+    .grid-2{display:grid; grid-template-columns:1.02fr .98fr; gap:22px}
+    .formula-card{padding:24px}
+    .formula{margin:16px 0; padding:16px 18px; border-radius:18px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color:#dbeafe; line-height:1.8; overflow:auto}
+    .steps{display:grid; gap:12px; margin-top:16px}
+    .step{padding:16px 18px; border-radius:16px; background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06)}
+    .step strong{display:block; margin-bottom:6px}
+    .step p{margin:0; color:var(--muted); line-height:1.7}
+
+    .player-card{padding:24px}
+    .controls{display:grid; grid-template-columns:repeat(2, minmax(160px, 220px)); gap:16px; margin-top:12px}
+    .control label{display:block; margin-bottom:8px; color:#dbeafe; font-weight:600}
+    .control input{width:100%}
+    input[type=range]{accent-color:#7dd3fc}
+    .player-bars{display:grid; gap:10px; margin-top:18px}
+    .bar-row{display:grid; grid-template-columns:84px 1fr 68px; gap:12px; align-items:center}
+    .bar-track{height:12px; background:rgba(255,255,255,.08); border-radius:999px; overflow:hidden}
+    .bar-fill{height:100%; border-radius:999px; background:linear-gradient(90deg, #60a5fa, #22d3ee)}
+    .small{font-size:13px; color:var(--muted); line-height:1.7}
+
+    .compare-card{padding:24px}
+    table{width:100%; border-collapse:collapse; overflow:hidden; border-radius:18px; border:1px solid rgba(255,255,255,.08)}
+    th,td{padding:14px 14px; text-align:left; border-bottom:1px solid rgba(255,255,255,.06)}
+    th{background:rgba(255,255,255,.04); font-size:13px; text-transform:uppercase; letter-spacing:.12em; color:#b8cbe7}
+    td{color:#eaf2ff}
+    tr:last-child td{border-bottom:none}
+
+    .timeline{display:grid; gap:14px}
+    .timeline-item{display:grid; grid-template-columns:34px 1fr; gap:14px; align-items:start}
+    .timeline-badge{width:34px; height:34px; border-radius:50%; display:grid; place-items:center; background:linear-gradient(180deg, rgba(96,165,250,.22), rgba(167,139,250,.12)); border:1px solid rgba(255,255,255,.1); color:#eaf3ff; font-weight:700}
+
+    footer{padding:30px 0 60px; color:#8fa6c7}
+    .footer-card{padding:22px; display:flex; justify-content:space-between; gap:20px; align-items:center}
+    .footer-card p{margin:0; line-height:1.7}
+    .tag{display:inline-flex; padding:8px 12px; border-radius:999px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.04); color:#dbeafe; font-size:13px}
+
+    @media (max-width: 980px){
+      .hero-grid,.grid-2{grid-template-columns:1fr}
+      .stat-grid,.callouts{grid-template-columns:repeat(2,1fr)}
+      .controls{grid-template-columns:1fr}
+    }
+    @media (max-width: 640px){
+      .stat-grid,.callouts{grid-template-columns:1fr}
+      .chart-wrap{height:360px}
+      .footer-card{flex-direction:column; align-items:flex-start}
+    }
+  </style>
+</head>
+<body class="noise">
+  <div class="container hero">
+    <div class="pill">Interactive paper companion · Number Bomb Game · Probability, search, and dynamic decisions</div>
+    <h1><span class="gradient">A visual research showcase</span><br>for the Number Bomb Game</h1>
+    <p class="subtitle">
+      Starting from the classical 100-number game, this page distills the core findings of the paper into an interactive format:
+      exact move distributions under random guessing and midpoint play, player-wise explosion risk for <em>m</em> cyclic players, and the key distinction between immediate survival and global self-preservation.
+    </p>
+
+    <div class="hero-grid">
+      <div class="card hero-panel">
+        <h3 style="margin:0 0 8px; font-size:24px">What the paper proves</h3>
+        <p class="small" style="max-width:760px">
+          In the 100-number game, both <strong>uniform random guessing</strong> and <strong>midpoint play</strong> have their highest explosion probability at move 7,
+          but the two distributions are fundamentally different. Random play spreads mass over many later rounds; midpoint play compresses almost all mass into the first seven moves.
+        </p>
+        <div class="stat-grid">
+          <div class="stat">
+            <div class="label">Random mode</div>
+            <div class="value">Move 7</div>
+          </div>
+          <div class="stat">
+            <div class="label">Random peak</div>
+            <div class="value">14.81%</div>
+          </div>
+          <div class="stat">
+            <div class="label">Binary mode</div>
+            <div class="value">Move 7</div>
+          </div>
+          <div class="stat">
+            <div class="label">Binary peak</div>
+            <div class="value">37.00%</div>
+          </div>
+        </div>
+      </div>
+      <div class="card insight">
+        <div>
+          <h3>Core conceptual distinction</h3>
+          <p>
+            A player's “best move” depends on the objective. If you only care about surviving <em>this turn</em>, all feasible guesses are equivalent. If you care about shrinking the interval as fast as possible, the median is uniquely optimal. If you care about maximizing your own chance of surviving the <em>entire game</em>, the problem becomes a dynamic program.
+          </p>
+        </div>
+        <div class="legend">
+          <span><i class="dot random"></i> Uniform random policy</span>
+          <span><i class="dot binary"></i> Midpoint / binary-search policy</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section>
+    <div class="container">
+      <div class="section-head">
+        <h2>1. Explosion-time distributions</h2>
+        <p>Switch between the exact 100-number distributions. The shared peak at move 7 hides a large structural difference: random play has a long right tail, while midpoint play packs most mass into the earliest feasible depths.</p>
+      </div>
+      <div class="card chart-card">
+        <div class="toolbar">
+          <button class="btn active" data-series="both">Show both</button>
+          <button class="btn" data-series="random">Random only</button>
+          <button class="btn" data-series="binary">Midpoint only</button>
+        </div>
+        <div class="chart-wrap">
+          <svg id="distChart" viewBox="0 0 980 440" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="callouts">
+          <div class="callout">
+            <h4>Random guessing</h4>
+            <p>Exact recursion yields a spread-out distribution with expected explosion time about <strong>7.48</strong> moves. The mode is move 7, but only at about <strong>14.81%</strong>.</p>
+          </div>
+          <div class="callout">
+            <h4>Midpoint policy</h4>
+            <p>The game becomes a deterministic search tree. For 100 numbers, the move probabilities are <strong>1%, 2%, 4%, 8%, 16%, 32%, 37%</strong> on moves 1 through 7.</p>
+          </div>
+          <div class="callout">
+            <h4>Why the same peak?</h4>
+            <p>Because 100 lies between <strong>2^6 = 64</strong> and <strong>2^7 = 128</strong>. In both models, the natural scale is logarithmic, so the modal move sits near depth 7.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container grid-2">
+      <div class="card formula-card">
+        <div class="section-head" style="margin-bottom:10px">
+          <h2>2. Exact recursion</h2>
+          <p>The paper's random-policy analysis is built from a finite-state transition kernel on the current feasible-set size.</p>
+        </div>
+        <div class="formula">
+          Current feasible size = s
+          <br><br>
+          Explosion on this move:
+          <br>
+          p(explode | s) = 1 / s
+          <br><br>
+          Nonterminal transition to size u (1 ≤ u ≤ s − 1):
+          <br>
+          p(s → u) = 2u / s²
+          <br><br>
+          Explosion-time recursion:
+          <br>
+          p_s(1) = 1 / s
+          <br>
+          p_s(t) = Σ[u=1 to s−1] (2u / s²) · p_u(t−1),   t ≥ 2
+        </div>
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-badge">1</div>
+            <div class="step"><strong>Local hazard</strong><p>With s feasible numbers and a uniformly random guess, the current player hits the bomb with exact probability 1/s.</p></div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-badge">2</div>
+            <div class="step"><strong>State reduction</strong><p>If the guess misses, the interval shrinks to one side. The probability of landing in a new state of size u is exactly 2u/s².</p></div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-badge">3</div>
+            <div class="step"><strong>Finite-state recursion</strong><p>Because the next state depends only on the current size, explosion times and player risks can be computed exactly by dynamic recursion.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card player-card">
+        <div class="section-head" style="margin-bottom:10px">
+          <h2>3. Which player is most likely to explode?</h2>
+          <p>For random play, once the move distribution p_n(t) is known, the explosion probability of player j among m cyclic players is the sum over moves j, j+m, j+2m, ...</p>
+        </div>
+        <div class="formula">
+          P(player j explodes) = Σ[ℓ ≥ 0] p_n(j + ℓm)
+        </div>
+        <div class="controls">
+          <div class="control">
+            <label for="nRange">Number range n: <span id="nVal">100</span></label>
+            <input id="nRange" type="range" min="10" max="200" value="100" step="1" />
+          </div>
+          <div class="control">
+            <label for="mRange">Players m: <span id="mVal">5</span></label>
+            <input id="mRange" type="range" min="2" max="12" value="5" step="1" />
+          </div>
+        </div>
+        <p class="small" style="margin-top:14px">Below is an exact dynamic-programming computation under <strong>uniform random guessing</strong>. The first player typically has a slight edge because the move distribution is not perfectly periodic.</p>
+        <div class="player-bars" id="playerBars"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container grid-2">
+      <div class="card compare-card">
+        <div class="section-head" style="margin-bottom:12px">
+          <h2>4. Three decision objectives</h2>
+          <p>The paper separates three different notions of “best move.” This distinction is the conceptual heart of the analysis.</p>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Objective</th>
+              <th>What it optimizes</th>
+              <th>Best action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Immediate survival</td>
+              <td>Probability of not exploding on the current move</td>
+              <td>All feasible guesses are equivalent</td>
+            </tr>
+            <tr>
+              <td>Social shrinking</td>
+              <td>Expected size of the next feasible interval</td>
+              <td>The median guess is optimal</td>
+            </tr>
+            <tr>
+              <td>Personal long-run survival</td>
+              <td>Probability that <em>I</em> am not the eventual victim</td>
+              <td>Requires dynamic programming</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="steps">
+          <div class="step"><strong>Immediate survival is action-invariant.</strong><p>If the current interval has size s, every legal guess hits the bomb with probability 1/s. No guess improves your one-step chance of survival.</p></div>
+          <div class="step"><strong>Median play is socially efficient.</strong><p>Choosing the median minimizes the expected size of the next interval, which explains why binary-search play compresses explosion times into early moves.</p></div>
+          <div class="step"><strong>Self-preservation is dynamic.</strong><p>Once players care about who eventually explodes, the game ceases to be myopic. The optimal action depends on the future turn structure and must be solved by a Bellman recursion.</p></div>
+        </div>
+      </div>
+
+      <div class="card formula-card">
+        <div class="section-head" style="margin-bottom:10px">
+          <h2>5. Bellman framework</h2>
+          <p>For a focal player, the exact self-preservation problem can be written as a finite-state dynamic program.</p>
+        </div>
+        <div class="formula">
+          V(s, r) = max over guesses k in {1,...,s} of
+          <br><br>
+          ((k−1)/s) · V(k−1, r−1 mod m)
+          +
+          ((s−k)/s) · V(s−k, r−1 mod m)
+          <br><br>
+          where V(s, r) = maximal probability that the focal player ultimately survives,
+          given interval size s and turn offset r until that player next acts.
+        </div>
+        <div class="steps">
+          <div class="step"><strong>State variable</strong><p>The game state is not just the interval size s. One also needs the cyclic turn position among m players.</p></div>
+          <div class="step"><strong>Action variable</strong><p>The choice of pivot k changes the two possible continuation states and therefore changes the focal player's future risk profile.</p></div>
+          <div class="step"><strong>Main takeaway</strong><p>A strategy that shrinks the interval fastest need not be the strategy that maximizes one particular player's eventual survival probability.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="container">
+      <div class="section-head">
+        <h2>6. What this generalizes to</h2>
+        <p>The paper begins with the familiar 100-number game, but all exact recursions extend to arbitrary n and arbitrary numbers of cyclic players m.</p>
+      </div>
+      <div class="grid-2">
+        <div class="card formula-card">
+          <h3 style="margin-top:0">General n</h3>
+          <p class="small">The random-policy recursion depends only on the current feasible-set size. This makes the model scale naturally from the 100-number game to any ordered set {1,...,n}.</p>
+          <div class="formula">
+            p_n(t) = exact explosion probability on move t
+            <br><br>
+            E_n = expected explosion move
+            <br><br>
+            P_{n,m}(j) = probability that player j explodes among m cyclic players
+          </div>
+        </div>
+        <div class="card formula-card">
+          <h3 style="margin-top:0">General m</h3>
+          <p class="small">Once the move distribution is known, player-wise explosion risk is obtained by summing over move indices congruent to each player modulo m.</p>
+          <div class="formula">
+            Player j acts on moves:
+            <br>
+            j, j+m, j+2m, ...
+            <br><br>
+            Hence
+            <br>
+            P_{n,m}(j) = p_n(j) + p_n(j+m) + p_n(j+2m) + ...
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="container">
+      <div class="card footer-card">
+        <div>
+          <p><strong>Suggested use.</strong> This page is designed as a polished visual companion to the paper: suitable for project presentation, reading summary, or a portfolio-style web exhibit of the main theoretical results.</p>
+        </div>
+        <div class="tag">Self-contained HTML · no external dependencies</div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    const randomData = [0.010000,0.019800,0.037529,0.064990,0.099102,0.130619,0.148139,0.145045,0.123432,0.092012,0.060557,0.035447,0.018580,0.008773];
+    const binaryData = [0.01,0.02,0.04,0.08,0.16,0.32,0.37];
+
+    const svg = document.getElementById('distChart');
+    const buttons = [...document.querySelectorAll('.btn')];
+    let currentSeries = 'both';
+
+    function linePath(values, maxX, w, h, padL, padR, padT, padB){
+      const innerW = w - padL - padR;
+      const innerH = h - padT - padB;
+      const maxY = Math.max(...randomData, ...binaryData, 0.40);
+      return values.map((v,i)=>{
+        const x = padL + innerW * (i/(maxX-1));
+        const y = padT + innerH * (1 - v/maxY);
+        return `${i===0?'M':'L'} ${x.toFixed(2)} ${y.toFixed(2)}`;
+      }).join(' ');
+    }
+
+    function bars(values, maxX, w, h, padL, padR, padT, padB, color){
+      const innerW = w - padL - padR;
+      const innerH = h - padT - padB;
+      const maxY = Math.max(...randomData, ...binaryData, 0.40);
+      return values.map((v,i)=>{
+        const x = padL + innerW * ((i+0.5)/maxX) - (innerW/maxX)*0.28;
+        const bw = (innerW/maxX)*0.56;
+        const y = padT + innerH * (1 - v/maxY);
+        const bh = padT + innerH - y;
+        return `<rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="7" fill="${color}" opacity="0.18"></rect>`;
+      }).join('');
+    }
+
+    function renderChart(){
+      const w = 980, h = 440, padL = 58, padR = 26, padT = 22, padB = 52;
+      const maxX = 14;
+      const innerW = w-padL-padR, innerH = h-padT-padB;
+      const maxY = Math.max(...randomData, ...binaryData, 0.40);
+      let html = '';
+
+      html += `<defs>
+        <linearGradient id="gradRandom" x1="0" x2="1">
+          <stop offset="0%" stop-color="#22d3ee"/>
+          <stop offset="100%" stop-color="#60a5fa"/>
+        </linearGradient>
+        <linearGradient id="gradBinary" x1="0" x2="1">
+          <stop offset="0%" stop-color="#fbbf24"/>
+          <stop offset="100%" stop-color="#fb7185"/>
+        </linearGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="4" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>`;
+
+      for(let i=0;i<=5;i++){
+        const y = padT + innerH * (i/5);
+        const value = (maxY*(1-i/5)*100).toFixed(0)+'%';
+        html += `<line x1="${padL}" x2="${w-padR}" y1="${y}" y2="${y}" stroke="rgba(255,255,255,0.08)" stroke-dasharray="4 6"></line>`;
+        html += `<text x="${padL-10}" y="${y+4}" text-anchor="end" fill="rgba(220,235,255,0.72)" font-size="12">${value}</text>`;
+      }
+      for(let i=0;i<maxX;i++){
+        const x = padL + innerW * (i/(maxX-1));
+        html += `<text x="${x}" y="${h-20}" text-anchor="middle" fill="rgba(220,235,255,0.72)" font-size="12">${i+1}</text>`;
+      }
+      html += `<text x="${w/2}" y="${h-4}" text-anchor="middle" fill="rgba(220,235,255,0.72)" font-size="13">Move index</text>`;
+      html += `<text x="18" y="${h/2}" text-anchor="middle" transform="rotate(-90 18 ${h/2})" fill="rgba(220,235,255,0.72)" font-size="13">Explosion probability</text>`;
+
+      if(currentSeries==='both' || currentSeries==='random'){
+        html += bars(randomData, maxX, w, h, padL, padR, padT, padB, 'url(#gradRandom)');
+        html += `<path d="${linePath(randomData, maxX, w, h, padL, padR, padT, padB)}" fill="none" stroke="url(#gradRandom)" stroke-width="4" filter="url(#glow)"></path>`;
+        randomData.forEach((v,i)=>{
+          const x = padL + innerW * (i/(maxX-1));
+          const y = padT + innerH * (1 - v/maxY);
+          html += `<circle cx="${x}" cy="${y}" r="4.8" fill="#dff8ff" stroke="#22d3ee" stroke-width="2"></circle>`;
+        });
+      }
+      if(currentSeries==='both' || currentSeries==='binary'){
+        html += bars(binaryData, maxX, w, h, padL, padR, padT, padB, 'url(#gradBinary)');
+        html += `<path d="${linePath(binaryData, maxX, w, h, padL, padR, padT, padB)}" fill="none" stroke="url(#gradBinary)" stroke-width="4" filter="url(#glow)"></path>`;
+        binaryData.forEach((v,i)=>{
+          const x = padL + innerW * (i/(maxX-1));
+          const y = padT + innerH * (1 - v/maxY);
+          html += `<circle cx="${x}" cy="${y}" r="5" fill="#fff6de" stroke="#fbbf24" stroke-width="2"></circle>`;
+        });
+      }
+      svg.innerHTML = html;
+    }
+
+    buttons.forEach(btn=>btn.addEventListener('click', ()=>{
+      buttons.forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      currentSeries = btn.dataset.series;
+      renderChart();
+    }));
+
+    function computeRandomDistributions(n){
+      const p = Array.from({length:n+1}, ()=>[]);
+      const maxT = Math.max(100, Math.ceil(4*Math.log2(n)+20));
+      for(let s=1; s<=n; s++){
+        p[s] = Array(maxT+1).fill(0);
+        p[s][1] = 1/s;
+        for(let t=2; t<=maxT; t++){
+          let sum = 0;
+          for(let u=1; u<=s-1; u++) sum += (2*u)/(s*s)*p[u][t-1];
+          p[s][t] = sum;
+        }
+      }
+      return p[n];
+    }
+
+    function playerProbs(n,m){
+      const dist = computeRandomDistributions(n);
+      const probs = Array(m).fill(0);
+      for(let t=1; t<dist.length; t++){
+        const j = (t-1)%m;
+        probs[j] += dist[t];
+      }
+      return probs;
+    }
+
+    const nRange = document.getElementById('nRange');
+    const mRange = document.getElementById('mRange');
+    const nVal = document.getElementById('nVal');
+    const mVal = document.getElementById('mVal');
+    const barsEl = document.getElementById('playerBars');
+
+    function renderPlayerBars(){
+      const n = parseInt(nRange.value,10);
+      const m = parseInt(mRange.value,10);
+      nVal.textContent = n;
+      mVal.textContent = m;
+      const probs = playerProbs(n,m);
+      const max = Math.max(...probs);
+      barsEl.innerHTML = probs.map((p,i)=>{
+        const percent = (100*p).toFixed(2)+'%';
+        return `
+          <div class="bar-row">
+            <div>Player ${i+1}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${(p/max*100).toFixed(1)}%"></div></div>
+            <div style="text-align:right">${percent}</div>
+          </div>`;
+      }).join('');
+    }
+
+    nRange.addEventListener('input', renderPlayerBars);
+    mRange.addEventListener('input', renderPlayerBars);
+
+    renderChart();
+    renderPlayerBars();
+  </script>
+</body>
+</html>
